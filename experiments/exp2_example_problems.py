@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 """
-Scaffold Inference: Hierarchical math standard prediction using Together AI.
+Experiment 2: Add example problems for standards in confusable clusters (3+).
 
-Evaluation modes against together_val.jsonl:
-  1. Oracle:        Each layer receives the TRUE previous layers.
-  2. Tree:          Each layer receives the PREDICTED previous layers.
-  3. Tree-no-grade: Ground-truth grade, cascade domain→cluster→standard.
-
-Each mode is run twice: with and without solution content in the prompt.
-Multi-label problems are evaluated as correct if prediction matches ANY label.
+Based on scaffold_inference.py. Only adds brief example problems to
+prompt_standard() when the cluster has 3+ standards.
 
 Usage:
-  python3 scaffold_inference.py [N]     # run on first N val examples (default 100)
+  python3 experiments/exp2_example_problems.py [N]
 """
 
 import json
@@ -26,15 +21,40 @@ from together import Together
 
 # ── Global config ──────────────────────────────────────────────────────────────
 TOGETHER_MODELS = [
-    "zcs2024_8faa/Qwen2.5-14B-Instruct-e67004f4-abb83512",
+    "Qwen/Qwen3-Next-80B-A3B-Instruct",
 ]
 MAX_WORKERS = 10
-STANDARDS_PATH = "standards.jsonl"
-VAL_PATH = "together_val.jsonl"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STANDARDS_PATH = os.path.join(BASE_DIR, "standards.jsonl")
+VAL_PATH = os.path.join(BASE_DIR, "together_val.jsonl")
+EXAMPLES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "standard_examples.json")
 # ───────────────────────────────────────────────────────────────────────────────
 
 load_dotenv()
 client = Together()
+
+
+# ── Load example problems ─────────────────────────────────────────────────────
+
+def load_standard_examples(path: str) -> dict:
+    """Load cached example problems for standards."""
+    if os.path.exists(path):
+        with open(path) as f:
+            data = json.load(f)
+        # Truncate to first sentence or 100 chars
+        truncated = {}
+        for sid, ex in data.items():
+            # Take first sentence
+            for end in ['. ', '? ', '! ']:
+                idx = ex.find(end)
+                if idx != -1:
+                    ex = ex[:idx + 1]
+                    break
+            if len(ex) > 100:
+                ex = ex[:97] + "..."
+            truncated[sid] = ex
+        return truncated
+    return {}
 
 
 # ── Load and index standards hierarchy ─────────────────────────────────────────
@@ -320,9 +340,24 @@ def prompt_cluster(problem: str, grade: str, domain: str,
 Respond with ONLY the cluster ID (e.g., "3.NF.A", "K.OA.A", "A-CED.A"). No explanation."""
 
 
+def fmt_stds_with_examples(stds: dict, examples: dict) -> str:
+    """Format standards, appending example problems only for clusters with 3+ standards."""
+    lines = []
+    use_examples = len(stds) >= 3 and examples
+    for sid in sorted(stds.keys()):
+        desc = stds[sid]
+        ex = examples.get(sid, "") if use_examples else ""
+        if ex:
+            lines.append(f"  - {sid}: {desc} (Example: {ex})")
+        else:
+            lines.append(f"  - {sid}: {desc}")
+    return "\n".join(lines)
+
+
 def prompt_standard(problem: str, grade: str, domain: str, domain_desc: str,
                     cluster: str, cluster_desc: str, stds: dict,
-                    coherence: dict = None, student_solution: str = "") -> str:
+                    coherence: dict = None, student_solution: str = "",
+                    examples: dict = None) -> str:
     coherence_section = ""
     if coherence:
         hints = []
@@ -333,6 +368,8 @@ def prompt_standard(problem: str, grade: str, domain: str, domain_desc: str,
                 hints.append(f"  {std_id} connects to: {conns}")
         if hints:
             coherence_section = "\n\n## Coherence Connections (prerequisite/follow-up relationships)\n" + "\n".join(hints)
+
+    stds_formatted = fmt_stds_with_examples(stds, examples or {})
 
     return f"""You are a math education expert. Given a math problem, its grade level, domain, and cluster, predict the specific standard it aligns to.
 
@@ -346,7 +383,7 @@ def prompt_standard(problem: str, grade: str, domain: str, domain_desc: str,
 {cluster}: {cluster_desc}
 
 ## Available Standards in This Cluster
-{fmt(stds)}{coherence_section}
+{stds_formatted}{coherence_section}
 
 ## Problem
 {problem}{f'''
@@ -362,7 +399,7 @@ This problem may align to one or more standards. Respond with the standard ID(s)
 # ── Student solution generator ────────────────────────────────────────────────
 
 def generate_student_solution(problem: str, grade: str, model: str,
-                               max_retries: int = 10) -> str:
+                               max_retries: int = 5) -> str:
     prompt = f"""You are a grade {grade} math student. Solve the following problem step by step, showing your work the way a {grade} grader would. Use the math vocabulary and techniques appropriate for grade {grade}. Keep it brief (3-5 steps max).
 
 ## Problem
@@ -379,10 +416,8 @@ def generate_student_solution(problem: str, grade: str, model: str,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "rate" in err_str.lower() or "503" in err_str or "service_unavailable" in err_str.lower() or "not running" in err_str.lower():
-                wait = min(2 ** attempt * 2, 60)
-                time.sleep(wait)
+            if "429" in str(e) or "rate" in str(e).lower():
+                time.sleep(2 ** attempt)
             else:
                 raise
     return ""
@@ -390,32 +425,19 @@ def generate_student_solution(problem: str, grade: str, model: str,
 
 # ── Model call ────────────────────────────────────────────────────────────────
 
-USE_COMPLETION_API = False  # Set True for base models, False for instruct
-
-def call_model(prompt: str, model: str, max_retries: int = 10) -> str:
+def call_model(prompt: str, model: str, max_retries: int = 5) -> str:
     for attempt in range(max_retries):
         try:
-            if USE_COMPLETION_API:
-                response = client.completions.create(
-                    model=model,
-                    prompt=prompt,
-                    max_tokens=32,
-                    temperature=0.0,
-                )
-                return response.choices[0].text.strip()
-            else:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=32,
-                    temperature=0.0,
-                )
-                return response.choices[0].message.content.strip()
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=32,
+                temperature=0.0,
+            )
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "rate" in err_str.lower() or "503" in err_str or "service_unavailable" in err_str.lower() or "not running" in err_str.lower():
-                wait = min(2 ** attempt * 2, 60)
-                print(f"  [retry {attempt+1}/{max_retries}] {err_str[:80]}... waiting {wait}s")
+            if "429" in str(e) or "rate" in str(e).lower():
+                wait = 2 ** attempt
                 time.sleep(wait)
             else:
                 raise
@@ -445,7 +467,8 @@ Respond with ONLY one of the listed options. No explanation."""
 def run_one(problem, grades, domains_by_grade, clusters_by_domain,
             standards_by_cluster, substds_by_standard, all_standards, model, *,
             use_ground_truth: bool, skip_grade: bool = False,
-            include_solution: bool = True, coherence: dict = None):
+            include_solution: bool = True, coherence: dict = None,
+            examples: dict = None):
     text = problem["text"] if include_solution else problem["text_no_solution"]
     true_ids = problem["standard_ids"]
 
@@ -565,7 +588,7 @@ def run_one(problem, grades, domains_by_grade, clusters_by_domain,
     raw_standard = call_model_validated(
         prompt_standard(text, grade_for_next, domain_for_next, d_desc,
                         cluster_for_next, c_desc, avail_stds, coherence=coherence,
-                        student_solution=student_sol),
+                        student_solution=student_sol, examples=examples),
         model, set(avail_stds.keys()))
 
     # Parse multiple predictions (comma-separated)
@@ -604,7 +627,8 @@ def run_one(problem, grades, domains_by_grade, clusters_by_domain,
 def run_pass(problems, label, use_ground_truth, model,
              grades, domains_by_grade, clusters_by_domain,
              standards_by_cluster, substds_by_standard, all_standards,
-             skip_grade=False, include_solution=True, coherence=None):
+             skip_grade=False, include_solution=True, coherence=None,
+             examples=None):
     print(f"\n{'=' * 70}")
     print(f"  {label}")
     print(f"{'=' * 70}\n")
@@ -621,7 +645,8 @@ def run_pass(problems, label, use_ground_truth, model,
             problems[idx], grades, domains_by_grade, clusters_by_domain,
             standards_by_cluster, substds_by_standard, all_standards, model,
             use_ground_truth=use_ground_truth, skip_grade=skip_grade,
-            include_solution=include_solution, coherence=coherence)
+            include_solution=include_solution, coherence=coherence,
+            examples=examples)
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         futures = {pool.submit(worker, i): i for i in range(n)}
@@ -672,7 +697,9 @@ def main():
     all_standards = load_standards(STANDARDS_PATH)
     grades, domains_by_grade, clusters_by_domain, standards_by_cluster, substds_by_standard = \
         build_hierarchy(all_standards)
-    coherence = load_coherence("coherence_map.jsonl", all_standards)
+    coherence = load_coherence(os.path.join(BASE_DIR, "coherence_map.jsonl"), all_standards)
+    examples = load_standard_examples(EXAMPLES_PATH)
+    print(f"Loaded {len(examples)} standard example problems")
 
     problems = parse_problems(VAL_PATH)
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
@@ -701,11 +728,12 @@ def main():
             substds_by_standard=substds_by_standard,
             all_standards=all_standards,
             skip_grade=True, include_solution=True, coherence=coherence,
+            examples=examples,
         )
         all_accs[model] = acc
 
         # Save per-problem results for error analysis
-        results_path = f"scaffold_inference_{model_short}_results.jsonl"
+        results_path = os.path.join(BASE_DIR, f"scaffold_inference_{model_short}_exp2_results.jsonl")
         with open(results_path, "w") as f:
             for r in results:
                 f.write(json.dumps(r) + "\n")
@@ -735,7 +763,7 @@ def main():
     # Use the last model's results
     last_model = TOGETHER_MODELS[-1]
     last_short = last_model.split("/")[-1]
-    results_path = f"scaffold_inference_{last_short}_results.jsonl"
+    results_path = os.path.join(BASE_DIR, f"scaffold_inference_{last_short}_exp2_results.jsonl")
     all_results = []
     with open(results_path) as f:
         for line in f:
@@ -775,7 +803,7 @@ def main():
     output = {"n": n, "multi_label_count": multi_label, "models": {}}
     for model in TOGETHER_MODELS:
         output["models"][model] = all_accs[model]
-    with open("scaffold_inference_all_results.json", "w") as f:
+    with open(os.path.join(BASE_DIR, "scaffold_inference_exp2_all_results.json"), "w") as f:
         json.dump(output, f, indent=2)
 
 

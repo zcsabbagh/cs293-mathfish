@@ -26,14 +26,14 @@ from together import Together
 
 # ── Global config ──────────────────────────────────────────────────────────────
 TOGETHER_MODELS = [
-    "zcs2024_8faa/Qwen2.5-14B-Instruct-e67004f4-abb83512",
+    "Qwen/Qwen3-Next-80B-A3B-Instruct",
 ]
 MAX_WORKERS = 10
-STANDARDS_PATH = "standards.jsonl"
-VAL_PATH = "together_val.jsonl"
+STANDARDS_PATH = os.path.join(os.path.dirname(__file__), "..", "standards.jsonl")
+VAL_PATH = os.path.join(os.path.dirname(__file__), "..", "together_val.jsonl")
 # ───────────────────────────────────────────────────────────────────────────────
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 client = Together()
 
 
@@ -320,19 +320,19 @@ def prompt_cluster(problem: str, grade: str, domain: str,
 Respond with ONLY the cluster ID (e.g., "3.NF.A", "K.OA.A", "A-CED.A"). No explanation."""
 
 
+def fmt_coherence_ordered(options: dict, coherence: dict = None) -> str:
+    """Format options with coherence-connected standards listed first."""
+    if not coherence:
+        return fmt(options)
+    connected = sorted(k for k in options if k in coherence)
+    unconnected = sorted(k for k in options if k not in coherence)
+    ordered = connected + unconnected
+    return "\n".join(f"  - {k}: {options[k]}" for k in ordered)
+
+
 def prompt_standard(problem: str, grade: str, domain: str, domain_desc: str,
                     cluster: str, cluster_desc: str, stds: dict,
                     coherence: dict = None, student_solution: str = "") -> str:
-    coherence_section = ""
-    if coherence:
-        hints = []
-        for std_id in sorted(stds.keys()):
-            connected = coherence.get(std_id, set())
-            if connected:
-                conns = ", ".join(sorted(connected)[:6])
-                hints.append(f"  {std_id} connects to: {conns}")
-        if hints:
-            coherence_section = "\n\n## Coherence Connections (prerequisite/follow-up relationships)\n" + "\n".join(hints)
 
     return f"""You are a math education expert. Given a math problem, its grade level, domain, and cluster, predict the specific standard it aligns to.
 
@@ -346,7 +346,7 @@ def prompt_standard(problem: str, grade: str, domain: str, domain_desc: str,
 {cluster}: {cluster_desc}
 
 ## Available Standards in This Cluster
-{fmt(stds)}{coherence_section}
+{fmt_coherence_ordered(stds, coherence)}
 
 ## Problem
 {problem}{f'''
@@ -362,7 +362,7 @@ This problem may align to one or more standards. Respond with the standard ID(s)
 # ── Student solution generator ────────────────────────────────────────────────
 
 def generate_student_solution(problem: str, grade: str, model: str,
-                               max_retries: int = 10) -> str:
+                               max_retries: int = 5) -> str:
     prompt = f"""You are a grade {grade} math student. Solve the following problem step by step, showing your work the way a {grade} grader would. Use the math vocabulary and techniques appropriate for grade {grade}. Keep it brief (3-5 steps max).
 
 ## Problem
@@ -379,10 +379,8 @@ def generate_student_solution(problem: str, grade: str, model: str,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "rate" in err_str.lower() or "503" in err_str or "service_unavailable" in err_str.lower() or "not running" in err_str.lower():
-                wait = min(2 ** attempt * 2, 60)
-                time.sleep(wait)
+            if "429" in str(e) or "rate" in str(e).lower():
+                time.sleep(2 ** attempt)
             else:
                 raise
     return ""
@@ -390,32 +388,19 @@ def generate_student_solution(problem: str, grade: str, model: str,
 
 # ── Model call ────────────────────────────────────────────────────────────────
 
-USE_COMPLETION_API = False  # Set True for base models, False for instruct
-
-def call_model(prompt: str, model: str, max_retries: int = 10) -> str:
+def call_model(prompt: str, model: str, max_retries: int = 5) -> str:
     for attempt in range(max_retries):
         try:
-            if USE_COMPLETION_API:
-                response = client.completions.create(
-                    model=model,
-                    prompt=prompt,
-                    max_tokens=32,
-                    temperature=0.0,
-                )
-                return response.choices[0].text.strip()
-            else:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=32,
-                    temperature=0.0,
-                )
-                return response.choices[0].message.content.strip()
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=32,
+                temperature=0.0,
+            )
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "rate" in err_str.lower() or "503" in err_str or "service_unavailable" in err_str.lower() or "not running" in err_str.lower():
-                wait = min(2 ** attempt * 2, 60)
-                print(f"  [retry {attempt+1}/{max_retries}] {err_str[:80]}... waiting {wait}s")
+            if "429" in str(e) or "rate" in str(e).lower():
+                wait = 2 ** attempt
                 time.sleep(wait)
             else:
                 raise
@@ -672,7 +657,7 @@ def main():
     all_standards = load_standards(STANDARDS_PATH)
     grades, domains_by_grade, clusters_by_domain, standards_by_cluster, substds_by_standard = \
         build_hierarchy(all_standards)
-    coherence = load_coherence("coherence_map.jsonl", all_standards)
+    coherence = load_coherence(os.path.join(os.path.dirname(__file__), "..", "coherence_map.jsonl"), all_standards)
 
     problems = parse_problems(VAL_PATH)
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 100

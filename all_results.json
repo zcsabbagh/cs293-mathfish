@@ -1,0 +1,220 @@
+{
+  "experiments": {
+    "qwen3_80b_with_solutions_disambig": {
+      "model": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+      "description": "80B instruct with student solutions + domain disambiguation",
+      "fine_tuned": false,
+      "include_solution": true,
+      "domain_disambiguation": true,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 77.0,
+          "cluster": 70.0,
+          "standard_strict": 46.0,
+          "standard_multi": 56.0,
+          "standard_parent": 63.0
+        },
+        "n250": {
+          "n": 250,
+          "grade": 100.0,
+          "domain": 78.8,
+          "cluster": 68.0,
+          "standard_strict": 48.0,
+          "standard_multi": 55.6,
+          "standard_parent": 61.6
+        }
+      }
+    },
+    "qwen3_80b_baseline_no_solutions": {
+      "model": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+      "description": "80B instruct baseline (no solutions, no disambiguation)",
+      "fine_tuned": false,
+      "include_solution": false,
+      "domain_disambiguation": false,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 79.0,
+          "cluster": 70.0,
+          "standard_strict": 45.0,
+          "standard_multi": 57.0,
+          "standard_parent": 67.0
+        },
+        "n250": {
+          "n": 250,
+          "grade": 100.0,
+          "domain": 79.6,
+          "cluster": 67.6,
+          "standard_strict": 48.0,
+          "standard_multi": 55.2,
+          "standard_parent": 62.4
+        }
+      }
+    },
+    "qwen2.5_7b_instruct_baseline": {
+      "model": "Qwen2.5-7B-Instruct-Turbo",
+      "description": "Small model baseline (no fine-tuning, no solutions)",
+      "fine_tuned": false,
+      "include_solution": false,
+      "domain_disambiguation": false,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 70.0,
+          "cluster": 57.0,
+          "standard_strict": 39.0,
+          "standard_multi": 41.0,
+          "standard_parent": 48.0
+        }
+      }
+    },
+    "gemma_3n_e4b_baseline": {
+      "model": "gemma-3n-E4B-it",
+      "description": "Small model baseline (no fine-tuning, no solutions)",
+      "fine_tuned": false,
+      "include_solution": false,
+      "domain_disambiguation": false,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 61.0,
+          "cluster": 49.0,
+          "standard_strict": 26.0,
+          "standard_multi": 37.0,
+          "standard_parent": 43.0
+        }
+      }
+    },
+    "qwen2_1.5b_instruct_baseline": {
+      "model": "qwen-2-1.5b-instruct",
+      "description": "Small model baseline (no fine-tuning, no solutions)",
+      "fine_tuned": false,
+      "include_solution": false,
+      "domain_disambiguation": false,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 30.0,
+          "cluster": 18.0,
+          "standard_strict": 4.0,
+          "standard_multi": 6.0,
+          "standard_parent": 7.0
+        }
+      }
+    },
+    "qwen3_8b_base_finetuned": {
+      "model": "zcs2024_8faa/Qwen3-8B-Base-53ad3189-bc3e6d65",
+      "description": "Fine-tuned 8B base model (LoRA SFT, completions API). Base model struggled with chat format.",
+      "fine_tuned": true,
+      "base_model": "Qwen/Qwen3-8B-Base",
+      "training_method": "LoRA SFT",
+      "training_examples": 3519,
+      "include_solution": false,
+      "domain_disambiguation": true,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 71.0,
+          "cluster": 50.0,
+          "standard_strict": 29.0,
+          "standard_multi": 32.0,
+          "standard_parent": 44.0
+        },
+        "n250": {
+          "n": 250,
+          "grade": 100.0,
+          "domain": 71.6,
+          "cluster": 48.8,
+          "standard_strict": 30.0,
+          "standard_multi": 34.0,
+          "standard_parent": 42.0
+        }
+      }
+    },
+    "qwen2.5_14b_instruct_finetuned_with_solutions": {
+      "model": "zcs2024_8faa/Qwen2.5-14B-Instruct-e67004f4-abb83512",
+      "description": "Fine-tuned 14B instruct (LoRA SFT) with solutions=True + domain disambiguation",
+      "fine_tuned": true,
+      "base_model": "Qwen/Qwen2.5-14B-Instruct",
+      "training_method": "LoRA SFT",
+      "training_examples": 3519,
+      "include_solution": true,
+      "domain_disambiguation": true,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 80.0,
+          "cluster": 70.0,
+          "standard_strict": 54.0,
+          "standard_multi": 54.0,
+          "standard_parent": 63.0
+        },
+        "n250": {
+          "n": 250,
+          "grade": 100.0,
+          "domain": 82.8,
+          "cluster": 73.2,
+          "standard_strict": 57.6,
+          "standard_multi": 56.8,
+          "standard_parent": 64.0
+        },
+        "n500": {
+          "n": 500,
+          "grade": 100.0,
+          "domain": 82.2,
+          "cluster": 72.8,
+          "standard_strict": 53.0,
+          "standard_multi": 52.6,
+          "standard_parent": 62.2
+        }
+      }
+    },
+    "qwen2.5_14b_instruct_finetuned_no_solutions": {
+      "model": "zcs2024_8faa/Qwen2.5-14B-Instruct-e67004f4-abb83512",
+      "description": "Fine-tuned 14B instruct (LoRA SFT) without solutions, no disambiguation",
+      "fine_tuned": true,
+      "base_model": "Qwen/Qwen2.5-14B-Instruct",
+      "training_method": "LoRA SFT",
+      "training_examples": 3519,
+      "include_solution": false,
+      "domain_disambiguation": false,
+      "metrics": {
+        "n100": {
+          "n": 100,
+          "grade": 100.0,
+          "domain": 81.0,
+          "cluster": 71.0,
+          "standard_strict": 56.0,
+          "standard_multi": 57.0,
+          "standard_parent": 66.0
+        },
+        "n250": {
+          "n": 250,
+          "grade": 100.0,
+          "domain": 83.2,
+          "cluster": 74.4,
+          "standard_strict": 59.6,
+          "standard_multi": 60.0,
+          "standard_parent": 66.8
+        },
+        "n500": {
+          "n": 500,
+          "grade": 100.0,
+          "domain": 81.6,
+          "cluster": 72.4,
+          "standard_strict": 54.2,
+          "standard_multi": 53.6,
+          "standard_parent": 63.2
+        }
+      }
+    }
+  }
+}

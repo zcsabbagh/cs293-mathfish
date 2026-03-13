@@ -110,14 +110,66 @@
 **Root cause:** The extra instructional text confused the model. It started overthinking classifications and second-guessing itself. The model already understands the task well — adding meta-instructions about reasoning strategy just adds noise.
 **Verdict:** ❌ Reverted.
 
+## 11. Domain disambiguation revision step
+**Hypothesis:** After the model predicts a domain, if the prediction falls into a known confusable pair (e.g., 7.EE↔7.G, 3.NF↔3.OA), ask the model to reconsider with a brief distinction tip.
+**Change:** Added `DOMAIN_DISAMBIG` table with 12 confusable pairs and short tips. After domain prediction, if it lands in a pair, a follow-up call asks "You chose X, but X and Y are commonly confused. [Tip]. Which is correct?"
+**Result:** Domain 79% → 81%, Cluster 71% → 72%, Standard strict 48% → 51%, multi-pred 58% → 61%, parent-match 67% → 69% (100-sample run).
+**Verdict:** ✅ Kept. The targeted revision only fires when needed and doesn't pollute the initial prompt.
+
+## 12. Validation retries for invalid outputs
+**Hypothesis:** The model sometimes outputs garbage like "None of the standards align with this problem" instead of a valid ID. Retrying with a corrective prompt would recover these.
+**Change:** Added `call_model_validated()` that checks if the output is in the valid option set. If not, retries up to 3 times with "Your answer X is not valid. Choose from: [options]."
+**Result:** Eliminated garbage outputs. No clear accuracy improvement (within noise), but prevents a class of errors.
+**Verdict:** ✅ Kept. Prevents impossible errors at no accuracy cost.
+
+## 13. Expanded domain disambiguation tips
+**Hypothesis:** Making the disambiguation tips longer and more detailed would help more.
+**Change:** Expanded the 3.NF↔3.OA and 7.EE↔7.G tips to 2-3 sentences. Added 3.NF↔3.MD pair.
+**Result:** Domain dropped 81% → 76%. Longer tips hurt.
+**Root cause:** More text in the revision prompt gives the model more to overthink. Short tips work; long tips don't.
+**Verdict:** ❌ Reverted to short tips.
+
+## 14. Coherence map as candidate reordering (250-sample eval)
+**Hypothesis:** Reordering candidate standards so coherence-connected ones (prerequisites of later standards) appear first would help the model pick them.
+**Change:** At the standard level, sorted candidates so standards with coherence connections appear before those without.
+**Result (250 examples):** Domain 79.2%, Cluster 68.8%, Standard strict 46.0%, multi-pred 55.6%, parent-match 62.8%.
+**Root cause:** Disrupting the natural alphabetical ordering confuses the model more than any signal from coherence connections helps.
+**Verdict:** ❌ Reverted.
+
+## 15. Standard-level revision step using student solution (250-sample eval)
+**Hypothesis:** After predicting a standard, a follow-up call asking the model to reconsider using the student solution would improve accuracy (similar to the successful domain revision).
+**Change:** For clusters with 2-3 standards, after initial prediction, asked: "You chose X. Given the student solution, is X or Y a better match for prerequisite knowledge?"
+**Result (250 examples):** Domain 80.0%, Cluster 68.4%, Standard strict 46.4%, multi-pred 52.8%, parent-match 58.4%.
+**Root cause:** Unlike domain disambiguation (which uses specific confusion-pair tips), the standard revision is generic and causes the model to second-guess correct predictions. The "prerequisite knowledge" framing may also confuse since these ARE prerequisites.
+**Verdict:** ❌ Reverted.
+
+## 16. Example problems for each standard (250-sample eval)
+**Hypothesis:** Adding a brief generated example problem for each candidate standard would help the model distinguish between similar standards.
+**Change:** Generated 1-sentence example problems for 266 standards in multi-option clusters (cached to `experiments/standard_examples.json`). Injected into `prompt_standard()` for clusters with 3+ standards: "Standard X: [description] (Example: [problem])".
+**Result (250 examples):** Domain 79.6%, Cluster 67.6%, Standard strict 48.0%, multi-pred 55.2%, parent-match 62.4%.
+**Root cause:** Adding text to prompts continues to hurt. The extra example text dilutes the model's attention on the actual problem being classified.
+**Verdict:** ❌ Not used.
+
+## 17. Expanded/discriminative standard descriptions (250-sample eval)
+**Hypothesis:** Replacing standard descriptions with LLM-generated discriminative descriptions emphasizing what makes each standard DIFFERENT from neighbors would help classification.
+**Change:** Generated 362 expanded descriptions via Together API (cached to `experiments/expanded_standards.json`). Each focuses on how the standard differs from others in its cluster. Replaced descriptions in prompt_standard().
+**Result (250 examples):** Domain 79.6%, Cluster 68.8%, Standard strict 47.6%, multi-pred 53.6%, parent-match 60.4%.
+**Root cause:** The original CCSS descriptions are more precise than LLM-generated paraphrases. Replacing them lost important mathematical language.
+**Verdict:** ❌ Not used.
+
 ---
 
-## Current best results (kept fixes: multi-label eval + single-option pruning + student solution + multi-pred)
+## Key finding: prompt engineering ceiling
+Experiments 10, 13-17 all attempted to improve classification by modifying prompt content (adding examples, expanding descriptions, reordering candidates, adding revision steps). **All either had no effect or hurt performance.** The model appears to be at its prompt-engineering ceiling for this task. Fine-tuning is the logical next step.
+
+---
+
+## Current best results (kept fixes: multi-label eval + single-option pruning + student solution + multi-pred + domain revision + validation retries)
 | Layer    | Strict | Multi-pred | Parent-match |
 |----------|--------|------------|--------------|
 | Grade    | 100%   | 100%       | 100%         |
-| Domain   | 79%    | 79%        | 79%          |
-| Cluster  | 71%    | 71%        | 71%          |
-| Standard | **48%**| **58%**    | **67%**      |
+| Domain   | 81%    | 81%        | 81%          |
+| Cluster  | 72%    | 72%        | 72%          |
+| Standard | **51%**| **61%**    | **69%**      |
 
-*Multi-pred: any of the model's comma-separated predictions matches any true label. Parent-match: additionally counts parent/sub-standard matches (e.g., `6.RP.A.3` ↔ `6.RP.A.3c`) as correct.*
+*100-sample eval. Multi-pred: any of the model's comma-separated predictions matches any true label. Parent-match: additionally counts parent/sub-standard matches (e.g., `6.RP.A.3` ↔ `6.RP.A.3c`) as correct.*

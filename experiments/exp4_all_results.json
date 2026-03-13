@@ -1,0 +1,14 @@
+{
+  "n": 250,
+  "multi_label_count": 110,
+  "models": {
+    "Qwen/Qwen3-Next-80B-A3B-Instruct": {
+      "grade": 250,
+      "domain": 199,
+      "cluster": 172,
+      "standard": 119,
+      "standard_multi": 134,
+      "standard_parent": 151
+    }
+  }
+}

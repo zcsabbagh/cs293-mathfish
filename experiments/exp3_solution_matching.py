@@ -26,14 +26,15 @@ from together import Together
 
 # ── Global config ──────────────────────────────────────────────────────────────
 TOGETHER_MODELS = [
-    "zcs2024_8faa/Qwen2.5-14B-Instruct-e67004f4-abb83512",
+    "Qwen/Qwen3-Next-80B-A3B-Instruct",
 ]
 MAX_WORKERS = 10
-STANDARDS_PATH = "standards.jsonl"
-VAL_PATH = "together_val.jsonl"
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+STANDARDS_PATH = os.path.join(_BASE, "standards.jsonl")
+VAL_PATH = os.path.join(_BASE, "together_val.jsonl")
 # ───────────────────────────────────────────────────────────────────────────────
 
-load_dotenv()
+load_dotenv(os.path.join(_BASE, ".env"))
 client = Together()
 
 
@@ -362,7 +363,7 @@ This problem may align to one or more standards. Respond with the standard ID(s)
 # ── Student solution generator ────────────────────────────────────────────────
 
 def generate_student_solution(problem: str, grade: str, model: str,
-                               max_retries: int = 10) -> str:
+                               max_retries: int = 5) -> str:
     prompt = f"""You are a grade {grade} math student. Solve the following problem step by step, showing your work the way a {grade} grader would. Use the math vocabulary and techniques appropriate for grade {grade}. Keep it brief (3-5 steps max).
 
 ## Problem
@@ -379,10 +380,8 @@ def generate_student_solution(problem: str, grade: str, model: str,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "rate" in err_str.lower() or "503" in err_str or "service_unavailable" in err_str.lower() or "not running" in err_str.lower():
-                wait = min(2 ** attempt * 2, 60)
-                time.sleep(wait)
+            if "429" in str(e) or "rate" in str(e).lower():
+                time.sleep(2 ** attempt)
             else:
                 raise
     return ""
@@ -390,32 +389,19 @@ def generate_student_solution(problem: str, grade: str, model: str,
 
 # ── Model call ────────────────────────────────────────────────────────────────
 
-USE_COMPLETION_API = False  # Set True for base models, False for instruct
-
-def call_model(prompt: str, model: str, max_retries: int = 10) -> str:
+def call_model(prompt: str, model: str, max_retries: int = 5) -> str:
     for attempt in range(max_retries):
         try:
-            if USE_COMPLETION_API:
-                response = client.completions.create(
-                    model=model,
-                    prompt=prompt,
-                    max_tokens=32,
-                    temperature=0.0,
-                )
-                return response.choices[0].text.strip()
-            else:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=32,
-                    temperature=0.0,
-                )
-                return response.choices[0].message.content.strip()
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=32,
+                temperature=0.0,
+            )
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "rate" in err_str.lower() or "503" in err_str or "service_unavailable" in err_str.lower() or "not running" in err_str.lower():
-                wait = min(2 ** attempt * 2, 60)
-                print(f"  [retry {attempt+1}/{max_retries}] {err_str[:80]}... waiting {wait}s")
+            if "429" in str(e) or "rate" in str(e).lower():
+                wait = 2 ** attempt
                 time.sleep(wait)
             else:
                 raise
@@ -438,6 +424,35 @@ def call_model_validated(prompt: str, model: str, valid_options: set[str],
 
 Respond with ONLY one of the listed options. No explanation."""
     return result  # return last attempt even if invalid
+
+
+# ── Standard-level revision ───────────────────────────────────────────────────
+
+def _get_standard_revision(pred_std: str, avail_stds: dict, student_solution: str) -> tuple[str | None, list[str]]:
+    """If cluster has 2-3 standards, build a revision prompt to reconsider using the student solution."""
+    n = len(avail_stds)
+    if n < 2 or n > 3:
+        return None, []
+
+    # Pick the other candidate(s)
+    others = [s for s in sorted(avail_stds.keys()) if s != pred_std]
+    if not others:
+        return None, []
+
+    # Build short descriptions
+    options_str = "\n".join(f"  - {s}: {avail_stds[s]}" for s in sorted(avail_stds.keys()))
+    choices = [pred_std] + others
+    choices_str = " or ".join(choices)
+
+    prompt = f"""You chose {pred_std}. The student solution uses these skills:
+{student_solution[:400]}
+
+Standards:
+{options_str}
+
+Which standard requires the prerequisite knowledge shown in the solution: {choices_str}? Respond with ONLY the standard ID."""
+
+    return prompt, choices
 
 
 # ── Single-problem inference ──────────────────────────────────────────────────
@@ -574,6 +589,19 @@ def run_one(problem, grades, domains_by_grade, clusters_by_domain,
 
     # Strict: first prediction matches
     pred_standard = pred_standards[0] if pred_standards else raw_standard
+
+    # ── Standard-level revision step ─────────────────────────────────
+    if student_sol and pred_standard in avail_stds:
+        revision_prompt, valid_choices = _get_standard_revision(
+            pred_standard, avail_stds, student_sol)
+        if revision_prompt:
+            original_standard = pred_standard
+            revised = call_model(revision_prompt, model)
+            revised = revised.strip().strip('"').strip("'")
+            if revised in avail_stds:
+                pred_standard = revised
+                pred_standards[0] = revised
+            res["standard_revised_from"] = original_standard
     strict_correct = pred_standard in true_ids
 
     # Multi-pred: any prediction matches any true label
@@ -672,7 +700,7 @@ def main():
     all_standards = load_standards(STANDARDS_PATH)
     grades, domains_by_grade, clusters_by_domain, standards_by_cluster, substds_by_standard = \
         build_hierarchy(all_standards)
-    coherence = load_coherence("coherence_map.jsonl", all_standards)
+    coherence = load_coherence(os.path.join(_BASE, "coherence_map.jsonl"), all_standards)
 
     problems = parse_problems(VAL_PATH)
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
@@ -693,7 +721,7 @@ def main():
         print(f"{'#' * 70}")
 
         results, acc = run_pass(
-            problems, f"[{model_short}] Tree-NoGrade",
+            problems, f"[{model_short}] Exp3-StdRevision Tree-NoGrade",
             use_ground_truth=False, model=model,
             grades=grades, domains_by_grade=domains_by_grade,
             clusters_by_domain=clusters_by_domain,
@@ -705,7 +733,7 @@ def main():
         all_accs[model] = acc
 
         # Save per-problem results for error analysis
-        results_path = f"scaffold_inference_{model_short}_results.jsonl"
+        results_path = os.path.join(_BASE, f"experiments/exp3_{model_short}_results.jsonl")
         with open(results_path, "w") as f:
             for r in results:
                 f.write(json.dumps(r) + "\n")
@@ -735,7 +763,7 @@ def main():
     # Use the last model's results
     last_model = TOGETHER_MODELS[-1]
     last_short = last_model.split("/")[-1]
-    results_path = f"scaffold_inference_{last_short}_results.jsonl"
+    results_path = os.path.join(_BASE, f"experiments/exp3_{last_short}_results.jsonl")
     all_results = []
     with open(results_path) as f:
         for line in f:
@@ -775,7 +803,7 @@ def main():
     output = {"n": n, "multi_label_count": multi_label, "models": {}}
     for model in TOGETHER_MODELS:
         output["models"][model] = all_accs[model]
-    with open("scaffold_inference_all_results.json", "w") as f:
+    with open(os.path.join(_BASE, "experiments/exp3_all_results.json"), "w") as f:
         json.dump(output, f, indent=2)
 
 
