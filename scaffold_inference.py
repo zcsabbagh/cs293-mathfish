@@ -1,0 +1,768 @@
+#!/usr/bin/env python3
+"""
+Scaffold Inference: Hierarchical math standard prediction using Together AI.
+
+Evaluation modes against together_val.jsonl:
+  1. Oracle:        Each layer receives the TRUE previous layers.
+  2. Tree:          Each layer receives the PREDICTED previous layers.
+  3. Tree-no-grade: Ground-truth grade, cascade domain→cluster→standard.
+
+Each mode is run twice: with and without solution content in the prompt.
+Multi-label problems are evaluated as correct if prediction matches ANY label.
+
+Usage:
+  python3 scaffold_inference.py [N]     # run on first N val examples (default 100)
+"""
+
+import json
+import re
+import os
+import sys
+import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+from together import Together
+
+# ── Global config ──────────────────────────────────────────────────────────────
+TOGETHER_MODELS = [
+    "Qwen/Qwen3-Next-80B-A3B-Instruct",
+]
+MAX_WORKERS = 10
+STANDARDS_PATH = "standards.jsonl"
+VAL_PATH = "together_val.jsonl"
+# ───────────────────────────────────────────────────────────────────────────────
+
+load_dotenv()
+client = Together()
+
+
+# ── Load and index standards hierarchy ─────────────────────────────────────────
+
+def load_standards(path: str) -> dict:
+    standards = {}
+    with open(path) as f:
+        for line in f:
+            entry = json.loads(line)
+            standards[entry["id"]] = entry
+    return standards
+
+
+def build_hierarchy(standards: dict):
+    grades = {}
+    domains_by_grade = defaultdict(dict)
+    clusters_by_domain = defaultdict(dict)
+    standards_by_cluster = defaultdict(dict)
+
+    for sid, entry in standards.items():
+        level = entry["level"]
+        if level == "Grade":
+            grades[sid] = entry["description"]
+        elif level == "Domain":
+            parent_grade = entry.get("parent", "")
+            domains_by_grade[parent_grade][sid] = entry["description"]
+        elif level == "Cluster":
+            parent_domain = entry.get("parent", "")
+            clusters_by_domain[parent_domain][sid] = entry["description"]
+        elif level == "Standard":
+            parent_cluster = entry.get("parent", "")
+            standards_by_cluster[parent_cluster][sid] = entry["description"]
+
+    hs_categories = [sid for sid, e in standards.items() if e["level"] == "HS Category"]
+    for cat in hs_categories:
+        for domain_id, desc in list(domains_by_grade.get(cat, {}).items()):
+            domains_by_grade["HS"][domain_id] = desc
+        domains_by_grade.pop(cat, None)
+
+    # Sub-standards grouped by parent standard
+    substds_by_standard = defaultdict(dict)
+    for sid, entry in standards.items():
+        if entry["level"] == "Sub-standard":
+            parent = entry.get("parent", "")
+            substds_by_standard[parent][sid] = entry["description"]
+
+    return grades, domains_by_grade, clusters_by_domain, standards_by_cluster, substds_by_standard
+
+
+# ── Load coherence map ───────────────────────────────────────────────────────
+
+def load_coherence(path: str, all_standards: dict) -> dict:
+    """Load coherence edges, map to our standard IDs. Returns {std_id: set of connected std_ids}."""
+    data = json.load(open(path))
+    edges = data["coherence_edges"]
+
+    # Build short->full map (strip cluster letter: 3.NF.A.1 -> 3.NF.1)
+    short_to_full = defaultdict(list)
+    for sid, entry in all_standards.items():
+        if entry["level"] in ("Standard", "Sub-standard"):
+            parts = sid.split(".")
+            if "-" in parts[0]:
+                short = f"{parts[0]}.{parts[2]}" if len(parts) >= 3 else sid
+            elif len(parts) == 4:
+                short = f"{parts[0]}.{parts[1]}.{parts[3]}"
+            elif len(parts) == 3:
+                short = f"{parts[0]}.{parts[1]}"
+            else:
+                short = sid
+            short_to_full[short].append(sid)
+
+    def normalize(eid):
+        eid = eid.split("||")[0].strip().split(",")[0].strip()
+        if eid.startswith("0."):
+            eid = "K." + eid[2:]
+        parts = eid.split(".")
+        if len(parts) == 4 and len(parts[3]) == 1 and parts[3].isalpha():
+            eid = f"{parts[0]}.{parts[1]}.{parts[2]}{parts[3]}"
+        return eid
+
+    coherence = defaultdict(set)
+    for e in edges:
+        from_full = short_to_full.get(normalize(e["from"]), [])
+        to_full = short_to_full.get(normalize(e["to"]), [])
+        if from_full and to_full:
+            for f in from_full:
+                for t in to_full:
+                    coherence[f].add(t)
+                    coherence[t].add(f)
+    return dict(coherence)
+
+
+# ── Parse validation data ─────────────────────────────────────────────────────
+
+# Patterns that indicate solution/answer content
+SOLUTION_MARKERS = [
+    r"Student Response.*?(?=(?:Anticipated Misconceptions|Activity Synthesis|Student Facing|Are you ready for more\?|Problem \d|$))",
+    r"Activity Synthesis.*?(?=(?:Student Facing|Problem \d|$))",
+    r"Anticipated Misconceptions.*?(?=(?:Activity Synthesis|Student Facing|Problem \d|$))",
+]
+
+
+def strip_solution(text: str) -> str:
+    """Remove solution/answer content from problem text."""
+    # Remove Student Response sections
+    text = re.sub(
+        r"Student Response\n.*?(?=\n(?:Anticipated Misconceptions|Activity Synthesis|Student Facing|Are you ready for more\?|Problem \d|\Z))",
+        "", text, flags=re.DOTALL)
+    # Remove Activity Synthesis sections
+    text = re.sub(
+        r"Activity Synthesis\n.*?(?=\n(?:Student Facing|Problem \d|\Z))",
+        "", text, flags=re.DOTALL)
+    # Remove Anticipated Misconceptions sections
+    text = re.sub(
+        r"Anticipated Misconceptions\n.*?(?=\n(?:Activity Synthesis|Student Response|Student Facing|Problem \d|\Z))",
+        "", text, flags=re.DOTALL)
+    # Remove Extension Student Response
+    text = re.sub(
+        r"Extension Student Response\n.*?(?=\n(?:Activity Synthesis|Student Facing|Problem \d|\Z))",
+        "", text, flags=re.DOTALL)
+    # Clean up excess whitespace
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def parse_problems(path: str) -> list[dict]:
+    problems = []
+    with open(path) as f:
+        for line in f:
+            entry = json.loads(line)
+            text = entry["text"].replace("<s>", "").replace("</s>", "")
+            match = re.search(r"Building On Standards:\s*(.+)$", text, re.MULTILINE)
+            if not match:
+                continue
+            standard_ids = [s.strip() for s in match.group(1).strip().split(",")]
+            problem_text = text[: match.start()].strip()
+            if problem_text.startswith("Problem: "):
+                problem_text = problem_text[len("Problem: "):]
+
+            problems.append({
+                "text": problem_text,
+                "text_no_solution": strip_solution(problem_text),
+                "standard_ids": standard_ids,
+            })
+    return problems
+
+
+# ── Standard ID decomposition ─────────────────────────────────────────────────
+
+def get_grade(std_id: str) -> str:
+    if "-" in std_id.split(".")[0]:
+        return "HS"
+    return std_id.split(".")[0]
+
+def get_domain(std_id: str) -> str:
+    parts = std_id.split(".")
+    if "-" in parts[0]:
+        return parts[0]
+    if len(parts) >= 2:
+        return f"{parts[0]}.{parts[1]}"
+    return parts[0]
+
+def get_cluster(std_id: str) -> str:
+    parts = std_id.split(".")
+    if "-" in parts[0]:
+        return f"{parts[0]}.{parts[1]}" if len(parts) >= 2 else parts[0]
+    if len(parts) >= 3:
+        return f"{parts[0]}.{parts[1]}.{parts[2]}"
+    if len(parts) >= 2:
+        return f"{parts[0]}.{parts[1]}"
+    return parts[0]
+
+
+def all_true_values(standard_ids: list[str], extractor):
+    """Get the set of all possible true values across all labels."""
+    return set(extractor(sid) for sid in standard_ids)
+
+
+# ── Prompt builders ───────────────────────────────────────────────────────────
+
+def fmt(options: dict) -> str:
+    return "\n".join(f"  - {k}: {v}" for k, v in sorted(options.items()))
+
+
+def prompt_grade(problem: str, grades: dict) -> str:
+    return f"""You are a math education expert. Given a math problem, predict which grade level it belongs to.
+
+## Available Grade Levels
+{fmt(grades)}
+
+## Problem
+{problem}
+
+## Instructions
+Respond with ONLY the grade level ID (e.g., "K", "3", "HS"). No explanation."""
+
+
+DOMAIN_DISAMBIG = [
+    ("4.OA", "4.NBT", "OA is about reasoning with patterns and word problems using +-×÷; NBT is about place-value understanding and multi-digit arithmetic algorithms."),
+    ("7.EE", "7.G", "EE is about writing and solving equations/expressions; G is about geometric properties, area, volume, and angle relationships. Choose EE if the core task is setting up or solving an equation, even in a geometric context."),
+    ("F-BF", "F-IF", "BF is about constructing new functions (writing formulas, combining, composing); IF is about analyzing and interpreting given functions (domain, range, graphs, key features)."),
+    ("7.EE", "7.RP", "RP is about reasoning with ratios, rates, and proportional relationships; EE is about general expressions and equations. Choose RP if the problem centers on a proportional relationship or unit rate."),
+    ("3.NF", "3.OA", "NF is about understanding fractions as numbers (parts of a whole, number line); OA is about multiplication, division, and arithmetic patterns."),
+    ("6.EE", "6.G", "EE is about writing, evaluating, and solving expressions/equations; G is about area, surface area, and volume of shapes. Choose EE if the core task is constructing or solving an equation."),
+    ("6.NS", "6.RP", "RP is about ratios, rates, and percentages; NS is about operations with multi-digit numbers, decimals, and negatives."),
+    ("K.MD", "K.G", "MD is about describing and comparing measurable attributes (length, weight); G is about identifying, describing, and composing shapes."),
+    ("8.F", "8.SP", "F is about defining, comparing, and modeling with functions; SP is about scatter plots, lines of best fit, and two-way tables."),
+    ("5.MD", "5.OA", "MD is about measurement conversions and volume; OA is about writing/interpreting numerical expressions and analyzing patterns."),
+    ("A-CED", "A-SSE", "CED is about creating equations to model situations; SSE is about rewriting and analyzing the structure of existing expressions."),
+    ("G-CO", "G-C", "CO is about congruence, transformations, and triangle/parallelogram proofs; C is about properties of circles, arcs, and inscribed angles."),
+]
+
+def _get_domain_disambig(pred_domain: str, avail_domains: dict) -> tuple[str | None, list[str]]:
+    """If pred_domain is part of confusable pairs, return a revision prompt and list of valid choices."""
+    keys = set(avail_domains.keys())
+    matches = []
+    others = []
+    for a, b, tip in DOMAIN_DISAMBIG:
+        if a in keys and b in keys:
+            if pred_domain == a:
+                other = b
+            elif pred_domain == b:
+                other = a
+            else:
+                continue
+            matches.append(f'- {pred_domain} vs {other}: {tip}')
+            others.append(other)
+    if not matches:
+        return None, []
+    choices = [pred_domain] + others
+    choices_str = " or ".join(choices)
+    distinctions = "\n".join(matches)
+    return f"""You initially chose {pred_domain} ("{avail_domains[pred_domain]}"). Consider these distinctions:
+
+{distinctions}
+
+Given the problem, which domain is correct: {choices_str}? Respond with ONLY the domain ID.""", choices
+
+
+def prompt_domain(problem: str, grade: str, domains: dict,
+                  student_solution: str = "") -> str:
+    solution_section = ""
+    if student_solution:
+        solution_section = f"\n\n## How a Grade {grade} Student Would Solve This\n{student_solution}"
+
+    return f"""You are a math education expert. Given a math problem and its grade level, predict which domain it belongs to.
+
+## Grade Level
+{grade}
+
+## Available Domains at This Grade Level
+{fmt(domains)}
+
+## Problem
+{problem}{solution_section}
+
+## Instructions
+Respond with ONLY the domain ID (e.g., "3.NF", "K.OA", "A-CED"). No explanation."""
+
+
+def prompt_cluster(problem: str, grade: str, domain: str,
+                   domain_desc: str, clusters: dict,
+                   student_solution: str = "") -> str:
+    solution_section = ""
+    if student_solution:
+        solution_section = f"\n\n## How a Grade {grade} Student Would Solve This\n{student_solution}"
+
+    return f"""You are a math education expert. Given a math problem, its grade level, and domain, predict which cluster it belongs to.
+
+## Grade Level
+{grade}
+
+## Domain
+{domain}: {domain_desc}
+
+## Available Clusters in This Domain
+{fmt(clusters)}
+
+## Problem
+{problem}{solution_section}
+
+## Instructions
+Respond with ONLY the cluster ID (e.g., "3.NF.A", "K.OA.A", "A-CED.A"). No explanation."""
+
+
+def prompt_standard(problem: str, grade: str, domain: str, domain_desc: str,
+                    cluster: str, cluster_desc: str, stds: dict,
+                    coherence: dict = None, student_solution: str = "") -> str:
+    coherence_section = ""
+    if coherence:
+        hints = []
+        for std_id in sorted(stds.keys()):
+            connected = coherence.get(std_id, set())
+            if connected:
+                conns = ", ".join(sorted(connected)[:6])
+                hints.append(f"  {std_id} connects to: {conns}")
+        if hints:
+            coherence_section = "\n\n## Coherence Connections (prerequisite/follow-up relationships)\n" + "\n".join(hints)
+
+    return f"""You are a math education expert. Given a math problem, its grade level, domain, and cluster, predict the specific standard it aligns to.
+
+## Grade Level
+{grade}
+
+## Domain
+{domain}: {domain_desc}
+
+## Cluster
+{cluster}: {cluster_desc}
+
+## Available Standards in This Cluster
+{fmt(stds)}{coherence_section}
+
+## Problem
+{problem}{f'''
+
+## How a Grade {grade} Student Would Solve This
+{student_solution}''' if student_solution else ''}
+
+## Instructions
+This problem may align to one or more standards. Respond with the standard ID(s) that best match, comma-separated if multiple (e.g., "3.NF.A.1" or "8.F.B.4, 8.F.B.5"). No explanation."""
+
+
+
+# ── Student solution generator ────────────────────────────────────────────────
+
+def generate_student_solution(problem: str, grade: str, model: str,
+                               max_retries: int = 5) -> str:
+    prompt = f"""You are a grade {grade} math student. Solve the following problem step by step, showing your work the way a {grade} grader would. Use the math vocabulary and techniques appropriate for grade {grade}. Keep it brief (3-5 steps max).
+
+## Problem
+{problem}
+
+## Your Solution"""
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=300,
+                temperature=0.0,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            if "429" in str(e) or "rate" in str(e).lower():
+                time.sleep(2 ** attempt)
+            else:
+                raise
+    return ""
+
+
+# ── Model call ────────────────────────────────────────────────────────────────
+
+def call_model(prompt: str, model: str, max_retries: int = 5) -> str:
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=32,
+                temperature=0.0,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            if "429" in str(e) or "rate" in str(e).lower():
+                wait = 2 ** attempt
+                time.sleep(wait)
+            else:
+                raise
+    raise RuntimeError(f"Failed after {max_retries} retries")
+
+
+def call_model_validated(prompt: str, model: str, valid_options: set[str],
+                         max_attempts: int = 3) -> str:
+    """Call model and retry if output is not in valid_options. Returns best effort."""
+    for attempt in range(max_attempts):
+        result = call_model(prompt, model)
+        if result in valid_options:
+            return result
+        # For standard-level, check comma-separated (first token might be valid)
+        first_token = result.split(",")[0].strip().strip('"').strip("'")
+        if first_token in valid_options:
+            return result  # return full string, let caller parse
+        if attempt < max_attempts - 1:
+            prompt = f"""Your previous answer "{result}" is not a valid option. You MUST choose from: {', '.join(sorted(valid_options))}.
+
+Respond with ONLY one of the listed options. No explanation."""
+    return result  # return last attempt even if invalid
+
+
+# ── Single-problem inference ──────────────────────────────────────────────────
+
+def run_one(problem, grades, domains_by_grade, clusters_by_domain,
+            standards_by_cluster, substds_by_standard, all_standards, model, *,
+            use_ground_truth: bool, skip_grade: bool = False,
+            include_solution: bool = True, coherence: dict = None):
+    text = problem["text"] if include_solution else problem["text_no_solution"]
+    true_ids = problem["standard_ids"]
+
+    # All valid values at each layer (for multi-label eval)
+    true_grades = all_true_values(true_ids, get_grade)
+    true_domains = all_true_values(true_ids, get_domain)
+    true_clusters = all_true_values(true_ids, get_cluster)
+
+    # Pick first standard for oracle ground-truth feeding
+    true_std_0 = true_ids[0]
+    gt_grade = get_grade(true_std_0)
+    gt_domain = get_domain(true_std_0)
+    gt_cluster = get_cluster(true_std_0)
+
+    res = {
+        "true_standard_ids": true_ids,
+        "true_grades": sorted(true_grades),
+        "true_domains": sorted(true_domains),
+        "true_clusters": sorted(true_clusters),
+    }
+
+    # ── Layer 1: Grade ────────────────────────────────────────────────────
+    if skip_grade:
+        pred_grade = gt_grade
+        res["pred_grade"] = pred_grade
+        res["grade_correct"] = True
+        res["grade_skipped"] = True
+    else:
+        pred_grade = call_model(prompt_grade(text, grades), model)
+        res["pred_grade"] = pred_grade
+        res["grade_correct"] = pred_grade in true_grades
+
+    grade_for_next = gt_grade if (use_ground_truth or skip_grade) else pred_grade
+
+    # ── Generate student solution ────────────────────────────────────────
+    if include_solution:
+        student_sol = generate_student_solution(text, grade_for_next, model)
+    else:
+        student_sol = ""
+    res["student_solution"] = student_sol
+
+    # ── Layer 2: Domain ───────────────────────────────────────────────────
+    avail_domains = domains_by_grade.get(grade_for_next, {})
+    if not avail_domains:
+        res.update(pred_domain="UNKNOWN", domain_correct=False,
+                   pred_cluster="UNKNOWN", cluster_correct=False,
+                   pred_standard="UNKNOWN", standard_correct=False)
+        return res
+
+    if len(avail_domains) == 1:
+        pred_domain = next(iter(avail_domains))
+    else:
+        pred_domain = call_model_validated(
+            prompt_domain(text, grade_for_next, avail_domains,
+                          student_solution=student_sol),
+            model, set(avail_domains.keys()))
+        # Revision step: if prediction is in a confusable pair, ask model to reconsider
+        revision_prompt, valid_choices = _get_domain_disambig(pred_domain, avail_domains)
+        if revision_prompt:
+            original_domain = pred_domain
+            pred_domain = call_model(revision_prompt, model)
+            if pred_domain not in avail_domains:
+                pred_domain = original_domain  # fallback if revision is garbage
+            res["domain_revised_from"] = original_domain
+    res["pred_domain"] = pred_domain
+    res["domain_correct"] = pred_domain in true_domains
+
+    domain_for_next = gt_domain if use_ground_truth else pred_domain
+
+    # ── Layer 3: Cluster ──────────────────────────────────────────────────
+    domain_desc = avail_domains.get(domain_for_next, "")
+    if use_ground_truth and not domain_desc:
+        true_dom_lookup = domains_by_grade.get(gt_grade, {})
+        domain_desc = true_dom_lookup.get(gt_domain, "")
+    avail_clusters = clusters_by_domain.get(domain_for_next, {})
+    if not avail_clusters:
+        res.update(pred_cluster="UNKNOWN", cluster_correct=False,
+                   pred_standard="UNKNOWN", standard_correct=False)
+        return res
+
+    if len(avail_clusters) == 1:
+        pred_cluster = next(iter(avail_clusters))
+    else:
+        pred_cluster = call_model_validated(
+            prompt_cluster(text, grade_for_next, domain_for_next, domain_desc,
+                           avail_clusters, student_solution=student_sol),
+            model, set(avail_clusters.keys()))
+    res["pred_cluster"] = pred_cluster
+    res["cluster_correct"] = pred_cluster in true_clusters
+
+    cluster_for_next = gt_cluster if use_ground_truth else pred_cluster
+
+    # ── Layer 4: Standard ─────────────────────────────────────────────────
+    cluster_desc = avail_clusters.get(cluster_for_next, "")
+    if use_ground_truth and not cluster_desc:
+        true_cl_lookup = clusters_by_domain.get(gt_domain, {})
+        cluster_desc = true_cl_lookup.get(gt_cluster, "")
+    avail_stds = standards_by_cluster.get(cluster_for_next, {})
+    if not avail_stds:
+        res.update(pred_standard="UNKNOWN", standard_correct=False)
+        return res
+
+    # Short-circuit: only one standard in this cluster
+    if len(avail_stds) == 1:
+        pred_standard = next(iter(avail_stds))
+        res["pred_standard"] = pred_standard
+        res["standard_correct"] = pred_standard in true_ids
+        return res
+
+    if use_ground_truth:
+        d_desc = domains_by_grade.get(gt_grade, {}).get(gt_domain, domain_desc)
+        c_desc = clusters_by_domain.get(gt_domain, {}).get(gt_cluster, cluster_desc)
+    else:
+        d_desc = domain_desc
+        c_desc = cluster_desc
+
+    raw_standard = call_model_validated(
+        prompt_standard(text, grade_for_next, domain_for_next, d_desc,
+                        cluster_for_next, c_desc, avail_stds, coherence=coherence,
+                        student_solution=student_sol),
+        model, set(avail_stds.keys()))
+
+    # Parse multiple predictions (comma-separated)
+    pred_standards = [s.strip().strip('"').strip("'") for s in raw_standard.split(",")]
+    pred_standards = [s for s in pred_standards if s]  # drop empties
+
+    # Strict: first prediction matches
+    pred_standard = pred_standards[0] if pred_standards else raw_standard
+    strict_correct = pred_standard in true_ids
+
+    # Multi-pred: any prediction matches any true label
+    multi_correct = any(p in true_ids for p in pred_standards)
+
+    # Parent-match: any pred is parent/child of any true
+    parent_correct = multi_correct
+    if not parent_correct:
+        for p in pred_standards:
+            for tid in true_ids:
+                if tid.startswith(p) or p.startswith(tid):
+                    parent_correct = True
+                    break
+            if parent_correct:
+                break
+
+    res["pred_standard"] = pred_standard
+    res["pred_standards_all"] = pred_standards
+    res["standard_correct"] = strict_correct
+    res["standard_multi_correct"] = multi_correct
+    res["standard_parent_correct"] = parent_correct
+
+    return res
+
+
+# ── Parallel pass runner ─────────────────────────────────────────────────────
+
+def run_pass(problems, label, use_ground_truth, model,
+             grades, domains_by_grade, clusters_by_domain,
+             standards_by_cluster, substds_by_standard, all_standards,
+             skip_grade=False, include_solution=True, coherence=None):
+    print(f"\n{'=' * 70}")
+    print(f"  {label}")
+    print(f"{'=' * 70}\n")
+
+    n = len(problems)
+    results = [None] * n
+    correct = {"grade": 0, "domain": 0, "cluster": 0, "standard": 0}
+    multi_correct = 0
+    parent_correct = 0
+    done = 0
+
+    def worker(idx):
+        return idx, run_one(
+            problems[idx], grades, domains_by_grade, clusters_by_domain,
+            standards_by_cluster, substds_by_standard, all_standards, model,
+            use_ground_truth=use_ground_truth, skip_grade=skip_grade,
+            include_solution=include_solution, coherence=coherence)
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        futures = {pool.submit(worker, i): i for i in range(n)}
+        for future in as_completed(futures):
+            idx, r = future.result()
+            results[idx] = r
+            done += 1
+
+            for key in correct:
+                if r.get(f"{key}_correct"):
+                    correct[key] += 1
+            if r.get("standard_multi_correct"):
+                multi_correct += 1
+            if r.get("standard_parent_correct"):
+                parent_correct += 1
+
+            preds_all = r.get("pred_standards_all", [r.get("pred_standard", "?")])
+            preds_str = ", ".join(preds_all) if len(preds_all) > 1 else preds_all[0] if preds_all else "?"
+            mark = "✓" if r.get("standard_correct") else ("≈" if r.get("standard_multi_correct") else "✗")
+            print(
+                f"[{done}/{n}] "
+                f"True: {r['true_standard_ids'][0]:15s} | "
+                f"Pred: G={r['pred_grade']:3s} D={r.get('pred_domain','?'):8s} "
+                f"C={r.get('pred_cluster','?'):10s} S={preds_str:30s} | {mark}",
+                flush=True,
+            )
+
+    print(f"\n{label} — Results over {n} problems:")
+    print(f"  Layer 1 (Grade):          {correct['grade']:4d}/{n}  ({100*correct['grade']/n:.1f}%)")
+    print(f"  Layer 2 (Domain):         {correct['domain']:4d}/{n}  ({100*correct['domain']/n:.1f}%)")
+    print(f"  Layer 3 (Cluster):        {correct['cluster']:4d}/{n}  ({100*correct['cluster']/n:.1f}%)")
+    print(f"  Layer 4 (Standard):       {correct['standard']:4d}/{n}  ({100*correct['standard']/n:.1f}%)  [strict: 1st pred]")
+    print(f"  Layer 4 (Multi-pred):     {multi_correct:4d}/{n}  ({100*multi_correct/n:.1f}%)  [any pred matches any true]")
+    print(f"  Layer 4 (Parent-match):   {parent_correct:4d}/{n}  ({100*parent_correct/n:.1f}%)  [+ parent/sub-standard]")
+
+    correct["standard_multi"] = multi_correct
+    correct["standard_parent"] = parent_correct
+    return results, correct
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    if not os.environ.get("TOGETHER_API_KEY"):
+        print("Error: TOGETHER_API_KEY not found in environment or .env")
+        sys.exit(1)
+
+    all_standards = load_standards(STANDARDS_PATH)
+    grades, domains_by_grade, clusters_by_domain, standards_by_cluster, substds_by_standard = \
+        build_hierarchy(all_standards)
+    coherence = load_coherence("coherence_map.jsonl", all_standards)
+
+    problems = parse_problems(VAL_PATH)
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
+    problems = problems[:n]
+
+    multi_label = sum(1 for p in problems if len(p["standard_ids"]) > 1)
+    print(f"Models: {TOGETHER_MODELS}")
+    print(f"Workers: {MAX_WORKERS}")
+    print(f"Evaluating on {len(problems)} validation problems "
+          f"({multi_label} multi-label, {len(problems)-multi_label} single-label).\n")
+
+    all_accs = {}
+
+    for model in TOGETHER_MODELS:
+        model_short = model.split("/")[-1]
+        print(f"\n{'#' * 70}")
+        print(f"  MODEL: {model}")
+        print(f"{'#' * 70}")
+
+        results, acc = run_pass(
+            problems, f"[{model_short}] Tree-NoGrade",
+            use_ground_truth=False, model=model,
+            grades=grades, domains_by_grade=domains_by_grade,
+            clusters_by_domain=clusters_by_domain,
+            standards_by_cluster=standards_by_cluster,
+            substds_by_standard=substds_by_standard,
+            all_standards=all_standards,
+            skip_grade=True, include_solution=True, coherence=coherence,
+        )
+        all_accs[model] = acc
+
+        # Save per-problem results for error analysis
+        results_path = f"scaffold_inference_{model_short}_results.jsonl"
+        with open(results_path, "w") as f:
+            for r in results:
+                f.write(json.dumps(r) + "\n")
+        print(f"Saved per-problem results to {results_path}")
+
+    # ── Final table ───────────────────────────────────────────────────────
+    print(f"\n\n{'=' * 70}")
+    print("  FINAL RESULTS — Tree-NoGrade")
+    print(f"{'=' * 70}")
+
+    layers = [("grade", "Grade"), ("domain", "Domain"),
+              ("cluster", "Cluster"), ("standard", "Standard")]
+
+    for model in TOGETHER_MODELS:
+        ms = model.split("/")[-1]
+        acc = all_accs[model]
+        print(f"\n  {ms}:")
+        for key, lbl in layers:
+            c = acc[key]
+            print(f"    {lbl:<12s} {c:>4d}/{n} ({100*c/n:4.0f}%)")
+
+    # ── Error analysis ────────────────────────────────────────────────────
+    print(f"\n\n{'=' * 70}")
+    print("  WORST ERRORS (standard wrong)")
+    print(f"{'=' * 70}")
+
+    # Use the last model's results
+    last_model = TOGETHER_MODELS[-1]
+    last_short = last_model.split("/")[-1]
+    results_path = f"scaffold_inference_{last_short}_results.jsonl"
+    all_results = []
+    with open(results_path) as f:
+        for line in f:
+            all_results.append(json.loads(line))
+
+    errors = []
+    for i, r in enumerate(all_results):
+        if not r.get("standard_correct") and r.get("pred_standard") != "UNKNOWN":
+            # Find what options were available
+            pred_cluster = r.get("pred_cluster", "")
+            avail = standards_by_cluster.get(pred_cluster, {})
+            errors.append({
+                "idx": i,
+                "true": r["true_standard_ids"],
+                "pred": r["pred_standard"],
+                "pred_cluster": pred_cluster,
+                "num_options": len(avail),
+                "options": avail,
+                "problem": problems[i]["text"][:400],
+            })
+
+    errors.sort(key=lambda x: x["num_options"])
+    for e in errors[:6]:
+        print(f"\n--- Problem #{e['idx']+1} | {e['num_options']} options | Cluster: {e['pred_cluster']} ---")
+        print(f"True:      {e['true']}")
+        print(f"Predicted: {e['pred']}")
+        for sid, desc in sorted(e["options"].items()):
+            tag = " ◄TRUE" if sid in e["true"] else (" ◄PRED" if sid == e["pred"] else "")
+            print(f"  {sid}: {desc[:100]}{tag}")
+        # Show student-facing text
+        import re as _re
+        sf = _re.search(r"Student Facing\n(.+?)(?:\nStudent Response|\nTeachers|\Z)", e["problem"], _re.DOTALL)
+        preview = sf.group(1).strip()[:300] if sf else e["problem"][:300]
+        print(f"Problem: {preview}")
+
+    # Save combined
+    output = {"n": n, "multi_label_count": multi_label, "models": {}}
+    for model in TOGETHER_MODELS:
+        output["models"][model] = all_accs[model]
+    with open("scaffold_inference_all_results.json", "w") as f:
+        json.dump(output, f, indent=2)
+
+
+if __name__ == "__main__":
+    main()

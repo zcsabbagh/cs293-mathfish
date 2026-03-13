@@ -1,0 +1,23 @@
+[
+  {
+    "model": "claude-opus-4-6-zero-shot",
+    "step": "final",
+    "epoch": "final",
+    "standard_precision": 0.133867,
+    "standard_recall": 0.452067,
+    "standard_f1": 0.189641,
+    "standard_exact_match": 0.006,
+    "cluster_precision": 0.214607,
+    "cluster_recall": 0.6006,
+    "cluster_f1": 0.287134,
+    "cluster_exact_match": 0.038,
+    "domain_precision": 0.243109,
+    "domain_recall": 0.626333,
+    "domain_f1": 0.32202,
+    "domain_exact_match": 0.048,
+    "grade_precision": 0.325538,
+    "grade_recall": 0.667,
+    "grade_f1": 0.411079,
+    "grade_exact_match": 0.086
+  }
+]

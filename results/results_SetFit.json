@@ -1,0 +1,23 @@
+[
+  {
+    "model": "SetFit",
+    "step": "final",
+    "epoch": "final",
+    "standard_precision": 0.194,
+    "standard_recall": 0.249867,
+    "standard_f1": 0.204205,
+    "standard_exact_match": 0.018,
+    "cluster_precision": 0.286,
+    "cluster_recall": 0.351233,
+    "cluster_f1": 0.297805,
+    "cluster_exact_match": 0.1,
+    "domain_precision": 0.326,
+    "domain_recall": 0.401167,
+    "domain_f1": 0.341933,
+    "domain_exact_match": 0.138,
+    "grade_precision": 0.397,
+    "grade_recall": 0.520333,
+    "grade_f1": 0.431667,
+    "grade_exact_match": 0.196
+  }
+]

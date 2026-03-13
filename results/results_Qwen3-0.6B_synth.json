@@ -1,0 +1,23 @@
+[
+  {
+    "model": "Qwen3-0.6B+synth",
+    "step": "final",
+    "epoch": "final",
+    "standard_precision": 0.196275,
+    "standard_recall": 0.1822,
+    "standard_f1": 0.177136,
+    "standard_exact_match": 0.084,
+    "cluster_precision": 0.350833,
+    "cluster_recall": 0.310033,
+    "cluster_f1": 0.318733,
+    "cluster_exact_match": 0.224,
+    "domain_precision": 0.396,
+    "domain_recall": 0.345667,
+    "domain_f1": 0.359533,
+    "domain_exact_match": 0.268,
+    "grade_precision": 0.469,
+    "grade_recall": 0.420333,
+    "grade_f1": 0.434667,
+    "grade_exact_match": 0.358
+  }
+]

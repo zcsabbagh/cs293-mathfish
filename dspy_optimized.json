@@ -1,0 +1,210 @@
+{
+  "predict_domain": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "problem": "Narrative\nThe purpose of this warm-up is to invite students to share what they know about the number\n\\(\\frac{1}{2}\\)\nand elicit ways in which it can be represented. It gives the teacher the opportunity to hear students’ understandings about and experiences with fractions,\n\\(\\frac{1}{2}\\)\nin particular. The fraction\n\\(\\frac{1}{2}\\)\nis familiar to students and will be central in the first activity.\nLaunch\nGroups of 2\nDisplay the number\n\\(\\frac{1}{2}\\)\n.\n“What do you know about this number?”\n1 minute: quiet think time\nActivity\n“Discuss your thinking with your partner.”\n2 minutes: partner discussion\nShare and record responses.\nStudent Facing\nWhat do you know about\n\\(\\frac{1}{2}\\)\n?\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Student Response.\nActivity Synthesis\n“What different ways can we represent\n\\(\\frac{1}{2}\\)\n?” (Cut an object, a rectangle, or another shape into two equal parts, mark the middle point between 0 and 1 on a number line.)",
+        "grade": "3",
+        "available_domains": "  - 3.G: Geometry\n  - 3.MD: Measurement & Data\n  - 3.NBT: Number & Operations in Base Ten\n  - 3.NF: Number & Operations - Fractions: Grade 3 expectations in this domain are limited to fractions with denominators 2, 3, 4, 6, and 8.\n  - 3.OA: Operations & Algebraic Thinking",
+        "domain": "3.NF"
+      },
+      {
+        "augmented": true,
+        "problem": "Problem 1\nJoshua works for the post office and drives a mail truck. At the end of each day, he records his mileage. Since his route never changes, he will drive the same\n$$r$$\nmiles every day. He is the only mail carrier that drives his truck, so it is not used on the days he has off. At the end of Joshua’s nth day of work, the mail truck shows a mileage of\n$$m$$\nmiles.\nAssuming that Joshua’s mail truck was driven by another mail carrier before Joshua started working at the post office, what variable is missing from the context?\nWrite an equation that models the mileage of the mail truck,\n$$T$$\n, as a function of the number of days that Joshua works.\nUse your equation to determine the variable you defined in part (a), assuming that:\nJoshua’s route is 14 miles long.\nAt the end of Joshua’s 100th day of work, the mail truck shows a mileage of 76,762 miles.\nProblem 2\nThe taxi fare in Gotham city is determined by a set amount for the first fixed portion of a mile and then charged at a dollar per mile rate. A tip is generally expected at an approximate rate of 20% of the total fare.\nWrite an equation that models the cost of a fare as a function of the number of miles you travel.\nWrite an equation that models the number of miles you can travel as a function of how much money you have to spend.\nUsing the following information about one particular ride in Gotham City, determine whether your model makes sense.",
+        "grade": "8",
+        "available_domains": "  - 8.EE: Expressions & Equations\n  - 8.F: Functions\n  - 8.G: Geometry\n  - 8.NS: The Number System\n  - 8.SP: Statistics & Probability",
+        "domain": "8.F"
+      },
+      {
+        "augmented": true,
+        "problem": "Line segment\n$${\\overline{JK}}$$\nis defined by the points\n$${J \\space (-5,1)}$$\nand\n$${K \\space (-5,8)}$$\n. Line segment\n$${\\overline{AB}}$$\nis shown below.\n###IMAGE0###\nWhich line segment is longer?",
+        "grade": "6",
+        "available_domains": "  - 6.EE: Expressions & Equations\n  - 6.G: Geometry\n  - 6.NS: The Number System\n  - 6.RP: Ratios & Proportional Relationships\n  - 6.SP: Statistics & Probability",
+        "domain": "6.G"
+      },
+      {
+        "augmented": true,
+        "problem": "Problem 1\n###IMAGE0###\nHere is our Venn diagram from yesterday’s lesson, with an added category label of “squares.” How would you define a\nsquare\n?\nProblem 2\nDo you agree or disagree with the following statements? Explain.\na.   All squares are rectangles. Rectangles have four right angles. Therefore, all squares have four right angles.\nb.   No trapezoids are squares. Squares have four sides of equal length. Therefore, no trapezoids have four sides of equal length.",
+        "grade": "4",
+        "available_domains": "  - 4.G: Geometry\n  - 4.MD: Measurement & Data\n  - 4.NBT: Number & Operations in Base Ten: Grade 4 expectations in this domain are limited to whole numbers less than or equal to 1,000,000.\n  - 4.NF: Number & Operations - Fractions: Grade 4 expectations in this domain are limited to fractions with denominators 2, 3, 4, 5, 6, 8, 10, 12, and 100.\n  - 4.OA: Operations & Algebraic Thinking",
+        "domain": "4.G"
+      },
+      {
+        "augmented": true,
+        "problem": "Optional activity\nIn this activity, students make the connection between the fraction determined by the original rectangle and the resulting fraction more precise (MP6). The two rectangles taken together are designed to help students notice that decomposing rectangles is a geometric way to determine the greatest common factor of two numbers. (This is a geometric version of Euclid’s algorithm for finding the greatest common factor.)\nLaunch\nArrange students in groups of 2. Provide access to graph paper. Students work on problems alone and compare work with a partner.\nRepresentation: Internalize Comprehension.\nActivate or supply background knowledge. Provide students with access to the two large rectangles prepared on graph paper. Encourage students to annotate diagrams with details to show how each value is represented. For example, number of squares in total, side length of the smallest square.\nSupports accessibility for: Visual-spatial processing; Organization\nStudent Facing\nAccurately draw a rectangle that is 9 units by 4 units.\nIn your rectangle, draw a line segment that decomposes the rectangle into a new rectangle and a square that is as large as possible. Continue until your original rectangle has been entirely decomposed into squares.\nHow many squares of each size are there?\nWhat are the side lengths of the last square you drew?\nWrite\n\\(\\frac94\\)\nas a mixed number.\nAccurately draw a rectangle that is 27 units by 12 units.\nIn your rectangle, draw a line segment that decomposes the rectangle into a new rectangle and a square that is as large as possible. Continue until your original rectangle has been entirely decomposed into squares.\nHow many squares of each size are there?\nWhat are the side lengths of the last square you drew?\nWrite\n\\(\\frac{27}{12}\\)\nas a mixed number.\nCompare the diagram you drew for this problem and the one for the previous problem. How are they the same? How are they different?\nWhat is the greatest common factor of 9 and 4? What is the greatest common factor of 27 and 12? What does this have to do with your diagrams of decomposed rectangles?\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Student Response.\nStudent Facing\nAre you ready for more?\nWe have seen some examples of rectangle tilings. A\ntiling\nmeans a way to completely cover a shape with other shapes, without any gaps or overlaps. For example, here is a tiling of rectangle\n\\(KXWJ\\)\nwith 2 large squares, 3 medium squares, 1 small square, and 2 tiny squares.\n###IMAGE0###\nSome of the squares used to tile this rectangle have the same size.\nMight it be possible to tile a rectangle with squares where the squares are\nall different sizes\n?\nIf you think it is possible, find such a rectangle and such a tiling. If you think it is not possible, explain why it is not possible.\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Extension Student Response.\nActivity Synthesis\nIt is not necessary for students to understand a general argument for why chopping rectangles can help you know the greatest common factor of two numbers. However, for this particular example, students may notice that:\nAll of the segments in the larger partitioned rectangle are three times longer than their corresponding segments in the smaller partitioned rectangle.\n27 and 12 are each 3 times larger than 9 and 4, respectively.",
+        "grade": "5",
+        "available_domains": "  - 5.G: Geometry\n  - 5.MD: Measurement & Data\n  - 5.NBT: Number & Operations in Base Ten\n  - 5.NF: Number & Operations - Fractions\n  - 5.OA: Operations & Algebraic Thinking",
+        "domain": "5.NF"
+      }
+    ],
+    "signature": {
+      "instructions": "You are a math education expert. Given a math problem and its grade level, predict which Common Core math domain it belongs to. Respond with ONLY the domain ID.",
+      "fields": [
+        {
+          "prefix": "Problem:",
+          "description": "The math problem text"
+        },
+        {
+          "prefix": "Grade:",
+          "description": "The grade level (e.g., '3', 'K', 'HS')"
+        },
+        {
+          "prefix": "Available Domains:",
+          "description": "List of available domains with descriptions"
+        },
+        {
+          "prefix": "Domain:",
+          "description": "The domain ID only (e.g., '3.NF', 'K.OA', 'A-CED')"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "predict_cluster": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "problem": "Problem 1\nJoshua works for the post office and drives a mail truck. At the end of each day, he records his mileage. Since his route never changes, he will drive the same\n$$r$$\nmiles every day. He is the only mail carrier that drives his truck, so it is not used on the days he has off. At the end of Joshua’s nth day of work, the mail truck shows a mileage of\n$$m$$\nmiles.\nAssuming that Joshua’s mail truck was driven by another mail carrier before Joshua started working at the post office, what variable is missing from the context?\nWrite an equation that models the mileage of the mail truck,\n$$T$$\n, as a function of the number of days that Joshua works.\nUse your equation to determine the variable you defined in part (a), assuming that:\nJoshua’s route is 14 miles long.\nAt the end of Joshua’s 100th day of work, the mail truck shows a mileage of 76,762 miles.\nProblem 2\nThe taxi fare in Gotham city is determined by a set amount for the first fixed portion of a mile and then charged at a dollar per mile rate. A tip is generally expected at an approximate rate of 20% of the total fare.\nWrite an equation that models the cost of a fare as a function of the number of miles you travel.\nWrite an equation that models the number of miles you can travel as a function of how much money you have to spend.\nUsing the following information about one particular ride in Gotham City, determine whether your model makes sense.",
+        "grade": "8",
+        "domain_info": "8.F: Functions",
+        "available_clusters": "  - 8.F.A: Define, evaluate, and compare functions.\n  - 8.F.B: Use functions to model relationships between quantities.",
+        "cluster": "8.F.B"
+      },
+      {
+        "augmented": true,
+        "problem": "Optional activity\nIn this activity, students make the connection between the fraction determined by the original rectangle and the resulting fraction more precise (MP6). The two rectangles taken together are designed to help students notice that decomposing rectangles is a geometric way to determine the greatest common factor of two numbers. (This is a geometric version of Euclid’s algorithm for finding the greatest common factor.)\nLaunch\nArrange students in groups of 2. Provide access to graph paper. Students work on problems alone and compare work with a partner.\nRepresentation: Internalize Comprehension.\nActivate or supply background knowledge. Provide students with access to the two large rectangles prepared on graph paper. Encourage students to annotate diagrams with details to show how each value is represented. For example, number of squares in total, side length of the smallest square.\nSupports accessibility for: Visual-spatial processing; Organization\nStudent Facing\nAccurately draw a rectangle that is 9 units by 4 units.\nIn your rectangle, draw a line segment that decomposes the rectangle into a new rectangle and a square that is as large as possible. Continue until your original rectangle has been entirely decomposed into squares.\nHow many squares of each size are there?\nWhat are the side lengths of the last square you drew?\nWrite\n\\(\\frac94\\)\nas a mixed number.\nAccurately draw a rectangle that is 27 units by 12 units.\nIn your rectangle, draw a line segment that decomposes the rectangle into a new rectangle and a square that is as large as possible. Continue until your original rectangle has been entirely decomposed into squares.\nHow many squares of each size are there?\nWhat are the side lengths of the last square you drew?\nWrite\n\\(\\frac{27}{12}\\)\nas a mixed number.\nCompare the diagram you drew for this problem and the one for the previous problem. How are they the same? How are they different?\nWhat is the greatest common factor of 9 and 4? What is the greatest common factor of 27 and 12? What does this have to do with your diagrams of decomposed rectangles?\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Student Response.\nStudent Facing\nAre you ready for more?\nWe have seen some examples of rectangle tilings. A\ntiling\nmeans a way to completely cover a shape with other shapes, without any gaps or overlaps. For example, here is a tiling of rectangle\n\\(KXWJ\\)\nwith 2 large squares, 3 medium squares, 1 small square, and 2 tiny squares.\n###IMAGE0###\nSome of the squares used to tile this rectangle have the same size.\nMight it be possible to tile a rectangle with squares where the squares are\nall different sizes\n?\nIf you think it is possible, find such a rectangle and such a tiling. If you think it is not possible, explain why it is not possible.\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Extension Student Response.\nActivity Synthesis\nIt is not necessary for students to understand a general argument for why chopping rectangles can help you know the greatest common factor of two numbers. However, for this particular example, students may notice that:\nAll of the segments in the larger partitioned rectangle are three times longer than their corresponding segments in the smaller partitioned rectangle.\n27 and 12 are each 3 times larger than 9 and 4, respectively.",
+        "grade": "5",
+        "domain_info": "5.NF: Number & Operations - Fractions",
+        "available_clusters": "  - 5.NF.A: Use equivalent fractions as a strategy to add and subtract fractions.\n  - 5.NF.B: Apply and extend previous understandings of multiplication and division to multiply and divide fractions.",
+        "cluster": "5.NF.B"
+      }
+    ],
+    "signature": {
+      "instructions": "You are a math education expert. Given a math problem, its grade level, and domain, predict which Common Core cluster it belongs to. Respond with ONLY the cluster ID.",
+      "fields": [
+        {
+          "prefix": "Problem:",
+          "description": "The math problem text"
+        },
+        {
+          "prefix": "Grade:",
+          "description": "The grade level"
+        },
+        {
+          "prefix": "Domain Info:",
+          "description": "The domain ID and description"
+        },
+        {
+          "prefix": "Available Clusters:",
+          "description": "List of available clusters with descriptions"
+        },
+        {
+          "prefix": "Cluster:",
+          "description": "The cluster ID only (e.g., '3.NF.A', 'K.OA.A')"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "predict_standard": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "problem": "Narrative\nThe purpose of this warm-up is to invite students to share what they know about the number\n\\(\\frac{1}{2}\\)\nand elicit ways in which it can be represented. It gives the teacher the opportunity to hear students’ understandings about and experiences with fractions,\n\\(\\frac{1}{2}\\)\nin particular. The fraction\n\\(\\frac{1}{2}\\)\nis familiar to students and will be central in the first activity.\nLaunch\nGroups of 2\nDisplay the number\n\\(\\frac{1}{2}\\)\n.\n“What do you know about this number?”\n1 minute: quiet think time\nActivity\n“Discuss your thinking with your partner.”\n2 minutes: partner discussion\nShare and record responses.\nStudent Facing\nWhat do you know about\n\\(\\frac{1}{2}\\)\n?\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Student Response.\nActivity Synthesis\n“What different ways can we represent\n\\(\\frac{1}{2}\\)\n?” (Cut an object, a rectangle, or another shape into two equal parts, mark the middle point between 0 and 1 on a number line.)",
+        "grade": "3",
+        "domain_info": "3.NF: Number & Operations - Fractions: Grade 3 expectations in this domain are limited to fractions with denominators 2, 3, 4, 6, and 8.",
+        "cluster_info": "3.NF.A: Develop Understanding of fractions as numbers.\nGrade 3 expectations in this domain are limited to fractions with denominators 2, 3, 4, 6, and 8.",
+        "available_standards": "  - 3.NF.A.1: Understand a fraction 1/b as the quantity formed by 1 part when a whole is partitioned into b equal parts; understand a fraction a/b as the quantity formed by a parts of size 1/b.\nGrade 3 expectations in this domain are limited to fractions with denominators 2, 3, 4, 6, and 8.\n  - 3.NF.A.2: Understand a fraction as a number on the number line; represent fractions on a number line diagram.\nGrade 3 expectations in this domain are limited to fractions with denominators 2, 3, 4, 6, and 8.\n  - 3.NF.A.3: Explain equivalence of fractions in special cases, and compare fractions by reasoning about their size.\nGrade 3 expectations in this domain are limited to fractions with denominators 2, 3, 4, 6, and 8.",
+        "coherence_hints": "  3.NF.A.1 connects to: 2.G.A.3, 2.MD.A.2, 3.G.A.2, 3.MD.A.2, 3.NF.A.2\n  3.NF.A.2 connects to: 2.MD.B.6, 3.MD.B.4, 3.NF.A.1, 3.NF.A.3, 4.NF.B.3a\n  3.NF.A.3 connects to: 3.NF.A.1, 3.NF.A.2, 4.NF.A.1",
+        "standard": "3.NF.A.1"
+      },
+      {
+        "augmented": true,
+        "problem": "Problem 1\nJoshua works for the post office and drives a mail truck. At the end of each day, he records his mileage. Since his route never changes, he will drive the same\n$$r$$\nmiles every day. He is the only mail carrier that drives his truck, so it is not used on the days he has off. At the end of Joshua’s nth day of work, the mail truck shows a mileage of\n$$m$$\nmiles.\nAssuming that Joshua’s mail truck was driven by another mail carrier before Joshua started working at the post office, what variable is missing from the context?\nWrite an equation that models the mileage of the mail truck,\n$$T$$\n, as a function of the number of days that Joshua works.\nUse your equation to determine the variable you defined in part (a), assuming that:\nJoshua’s route is 14 miles long.\nAt the end of Joshua’s 100th day of work, the mail truck shows a mileage of 76,762 miles.\nProblem 2\nThe taxi fare in Gotham city is determined by a set amount for the first fixed portion of a mile and then charged at a dollar per mile rate. A tip is generally expected at an approximate rate of 20% of the total fare.\nWrite an equation that models the cost of a fare as a function of the number of miles you travel.\nWrite an equation that models the number of miles you can travel as a function of how much money you have to spend.\nUsing the following information about one particular ride in Gotham City, determine whether your model makes sense.",
+        "grade": "8",
+        "domain_info": "8.F: Functions",
+        "cluster_info": "8.F.B: Use functions to model relationships between quantities.",
+        "available_standards": "  - 8.F.B.4: Construct a function to model a linear relationship between two quantities. Determine the rate of change and initial value of the function from a description of a relationship or from two (x, y) values, including reading these from a table or from a graph. Interpret the rate of change and initial value of a linear function in terms of the situation it models, and in terms of its graph or a table of values.\n  - 8.F.B.5: Describe qualitatively the functional relationship between two quantities by analyzing a graph (e.g., where the function is increasing or decreasing, linear or nonlinear). Sketch a graph that exhibits the qualitative features of a function that has been described verbally.",
+        "coherence_hints": "  8.F.B.4 connects to: 7.RP.A.2, 8.F.A.3, 8.F.B.5, 8.SP.A.2, 8.SP.A.3\n  8.F.B.5 connects to: 8.F.A.1, 8.F.A.2, 8.F.A.3, 8.F.B.4",
+        "standard": "8.F.B.4"
+      },
+      {
+        "augmented": true,
+        "problem": "Line segment\n$${\\overline{JK}}$$\nis defined by the points\n$${J \\space (-5,1)}$$\nand\n$${K \\space (-5,8)}$$\n. Line segment\n$${\\overline{AB}}$$\nis shown below.\n###IMAGE0###\nWhich line segment is longer?",
+        "grade": "6",
+        "domain_info": "6.G: Geometry",
+        "cluster_info": "6.G.A: Solve real-world and mathematical problems involving area, surface area, and volume.",
+        "available_standards": "  - 6.G.A.1: Find the area of right triangles, other triangles, special quadrilaterals, and polygons by composing into rectangles or decomposing into triangles and other shapes; apply these techniques in the context of solving real-world and mathematical problems.\n  - 6.G.A.2: Find the volume of a right rectangular prism with fractional edge lengths by packing it with unit cubes of the appropriate unit fraction edge lengths, and show that the volume is the same as would be found by multiplying the edge lengths of the prism. Apply the formulas V = l w h and V = b h to find volumes of right rectangular prisms with fractional edge lengths in the context of solving real-world and mathematical problems.\n  - 6.G.A.3: Draw polygons in the coordinate plane given coordinates for the vertices; use coordinates to find the length of a side joining points with the same first coordinate or the same second coordinate. Apply these techniques in the context of solving real-world and mathematical problems.\n  - 6.G.A.4: Represent three-dimensional figures using nets made up of rectangles and triangles, and use the nets to find the surface area of these figures. Apply these techniques in the context of solving real-world and mathematical problems.",
+        "coherence_hints": "  6.G.A.1 connects to: 4.MD.A.3, 5.NF.B.4, 6.G.A.4, 7.G.A.1, 7.G.B.4\n  6.G.A.2 connects to: 5.MD.C.5a, 5.MD.C.5b, 7.G.B.6\n  6.G.A.3 connects to: 5.G.A.2, 6.NS.C.8, 8.G.A.3, 8.G.B.8\n  6.G.A.4 connects to: 6.G.A.1, 7.G.B.6",
+        "standard": "6.G.A.3"
+      },
+      {
+        "augmented": true,
+        "problem": "Problem 1\n###IMAGE0###\nHere is our Venn diagram from yesterday’s lesson, with an added category label of “squares.” How would you define a\nsquare\n?\nProblem 2\nDo you agree or disagree with the following statements? Explain.\na.   All squares are rectangles. Rectangles have four right angles. Therefore, all squares have four right angles.\nb.   No trapezoids are squares. Squares have four sides of equal length. Therefore, no trapezoids have four sides of equal length.",
+        "grade": "4",
+        "domain_info": "4.G: Geometry",
+        "cluster_info": "4.G.A: Draw and identify lines and angles, and classify shapes by properties of their lines and angles.",
+        "available_standards": "  - 4.G.A.1: Draw points, lines, line segments, rays, angles (right, acute, obtuse), and perpendicular and parallel lines. Identify these in two-dimensional figures.\n  - 4.G.A.2: Classify two-dimensional figures based on the presence or absence of parallel or perpendicular lines, or the presence or absence of angles of a specified size. Recognize right triangles as a category, and identify right triangles.\n  - 4.G.A.3: Recognize a line of symmetry for a two-dimensional figure as a line across the figure such that the figure can be folded along the line into matching parts. Identify line-symmetric figures and draw lines of symmetry.",
+        "coherence_hints": "  4.G.A.1 connects to: 3.G.A.1, 4.G.A.2, 4.MD.C.5\n  4.G.A.2 connects to: 4.G.A.1, 4.MD.C.5, 5.G.B.3\n  4.G.A.3 connects to: 1.G.A.2",
+        "standard": "4.G.A.2"
+      },
+      {
+        "augmented": true,
+        "problem": "Optional activity\nIn this activity, students make the connection between the fraction determined by the original rectangle and the resulting fraction more precise (MP6). The two rectangles taken together are designed to help students notice that decomposing rectangles is a geometric way to determine the greatest common factor of two numbers. (This is a geometric version of Euclid’s algorithm for finding the greatest common factor.)\nLaunch\nArrange students in groups of 2. Provide access to graph paper. Students work on problems alone and compare work with a partner.\nRepresentation: Internalize Comprehension.\nActivate or supply background knowledge. Provide students with access to the two large rectangles prepared on graph paper. Encourage students to annotate diagrams with details to show how each value is represented. For example, number of squares in total, side length of the smallest square.\nSupports accessibility for: Visual-spatial processing; Organization\nStudent Facing\nAccurately draw a rectangle that is 9 units by 4 units.\nIn your rectangle, draw a line segment that decomposes the rectangle into a new rectangle and a square that is as large as possible. Continue until your original rectangle has been entirely decomposed into squares.\nHow many squares of each size are there?\nWhat are the side lengths of the last square you drew?\nWrite\n\\(\\frac94\\)\nas a mixed number.\nAccurately draw a rectangle that is 27 units by 12 units.\nIn your rectangle, draw a line segment that decomposes the rectangle into a new rectangle and a square that is as large as possible. Continue until your original rectangle has been entirely decomposed into squares.\nHow many squares of each size are there?\nWhat are the side lengths of the last square you drew?\nWrite\n\\(\\frac{27}{12}\\)\nas a mixed number.\nCompare the diagram you drew for this problem and the one for the previous problem. How are they the same? How are they different?\nWhat is the greatest common factor of 9 and 4? What is the greatest common factor of 27 and 12? What does this have to do with your diagrams of decomposed rectangles?\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Student Response.\nStudent Facing\nAre you ready for more?\nWe have seen some examples of rectangle tilings. A\ntiling\nmeans a way to completely cover a shape with other shapes, without any gaps or overlaps. For example, here is a tiling of rectangle\n\\(KXWJ\\)\nwith 2 large squares, 3 medium squares, 1 small square, and 2 tiny squares.\n###IMAGE0###\nSome of the squares used to tile this rectangle have the same size.\nMight it be possible to tile a rectangle with squares where the squares are\nall different sizes\n?\nIf you think it is possible, find such a rectangle and such a tiling. If you think it is not possible, explain why it is not possible.\nStudent Response\nTeachers with a valid work email address can\nclick here to register or sign in\nfor free access to Extension Student Response.\nActivity Synthesis\nIt is not necessary for students to understand a general argument for why chopping rectangles can help you know the greatest common factor of two numbers. However, for this particular example, students may notice that:\nAll of the segments in the larger partitioned rectangle are three times longer than their corresponding segments in the smaller partitioned rectangle.\n27 and 12 are each 3 times larger than 9 and 4, respectively.",
+        "grade": "5",
+        "domain_info": "5.NF: Number & Operations - Fractions",
+        "cluster_info": "5.NF.B: Apply and extend previous understandings of multiplication and division to multiply and divide fractions.",
+        "available_standards": "  - 5.NF.B.3: Interpret a fraction as division of the numerator by the denominator (a/b = a ÷ b). Solve word problems involving division of whole numbers leading to answers in the form of fractions or mixed numbers, e.g., by using visual fraction models or equations to represent the problem. For example, interpret 3/4 as the result of dividing 3 by 4, noting that 3/4 multiplied by 4 equals 3, and that when 3 wholes are shared equally among 4 people each person has a share of size 3/4. If 9 people want to share a 50-pound sack of rice equally by weight, how many pounds of rice should each person get? Between what two whole numbers does your answer lie?\n  - 5.NF.B.4: Apply and extend previous understandings of multiplication to multiply a fraction or whole number by a fraction.\n  - 5.NF.B.5: Interpret multiplication as scaling (resizing), by:\n- Explaining why multiplying a given number by a fraction greater than 1 results in a product greater than the given number (recognizing multiplication by whole numbers greater than 1 as a familiar case); explaining why multiplying a given number by a fraction less than 1 results in a product smaller than the given number; and relating the principle of fraction equivalence a/b = (n×a)/(n×b) to the effect of multiplying a/b by 1.\n- Comparing the size of a product to the size of one factor on the basis of the size of the other factor, without performing the indicated multiplication.\n  - 5.NF.B.6: Solve real world problems involving multiplication of fractions and mixed numbers, e.g., by using visual fraction models or equations to represent the problem.\n  - 5.NF.B.7: Apply and extend previous understandings of division to divide unit fractions by whole numbers and whole numbers by unit fractions. (Students able to multiply fractions in general can develop strategies to divide fractions in general, by reasoning about the relationship between multiplication and division. But division of a fraction by a fraction is not a requirement at this grade.)",
+        "coherence_hints": "  5.NF.B.3 connects to: 3.OA.A.1, 3.OA.B.6, 4.MD.A.2, 5.NF.B.4a, 5.NF.B.5\n  5.NF.B.4 connects to: 5.NBT.B.7, 5.NF.B.4a, 5.NF.B.5, 5.NF.B.6, 5.NF.B.7\n  5.NF.B.5 connects to: 3.OA.A.1, 4.MD.A.2, 4.NF.A.1, 5.NF.B.3, 5.NF.B.4\n  5.NF.B.6 connects to: 3.OA.A.1, 4.MD.A.2, 5.MD.B.2, 5.NF.B.4, 5.NF.B.4a\n  5.NF.B.7 connects to: 3.NF.A.1, 3.OA.B.6, 4.NF.B.4, 5.NBT.B.7, 5.NF.B.4",
+        "standard": "5.NF.B.3"
+      }
+    ],
+    "signature": {
+      "instructions": "You are a math education expert. Given a math problem, its grade, domain, cluster, and coherence connections between standards, predict the specific Common Core standard. Respond with ONLY the standard ID.",
+      "fields": [
+        {
+          "prefix": "Problem:",
+          "description": "The math problem text"
+        },
+        {
+          "prefix": "Grade:",
+          "description": "The grade level"
+        },
+        {
+          "prefix": "Domain Info:",
+          "description": "The domain ID and description"
+        },
+        {
+          "prefix": "Cluster Info:",
+          "description": "The cluster ID and description"
+        },
+        {
+          "prefix": "Available Standards:",
+          "description": "List of available standards with descriptions"
+        },
+        {
+          "prefix": "Coherence Hints:",
+          "description": "Standards connected via the Common Core coherence map (prerequisite/follow-up relationships)"
+        },
+        {
+          "prefix": "Standard:",
+          "description": "The standard ID only (e.g., '3.NF.A.1', 'A-CED.A.1')"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.14",
+      "dspy": "3.1.3",
+      "cloudpickle": "3.1"
+    }
+  }
+}

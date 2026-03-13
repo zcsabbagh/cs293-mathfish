@@ -1,0 +1,23 @@
+[
+  {
+    "model": "TF-IDF+LogReg",
+    "step": "final",
+    "epoch": "final",
+    "standard_precision": 0.133,
+    "standard_recall": 0.1614,
+    "standard_f1": 0.136795,
+    "standard_exact_match": 0.02,
+    "cluster_precision": 0.173,
+    "cluster_recall": 0.2069,
+    "cluster_f1": 0.176371,
+    "cluster_exact_match": 0.046,
+    "domain_precision": 0.206,
+    "domain_recall": 0.253333,
+    "domain_f1": 0.215933,
+    "domain_exact_match": 0.076,
+    "grade_precision": 0.289,
+    "grade_recall": 0.374333,
+    "grade_f1": 0.312333,
+    "grade_exact_match": 0.14
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "n": 100,
+  "multi_label_count": 39,
+  "models": {
+    "arize-ai/qwen-2-1.5b-instruct": {
+      "grade": 100,
+      "domain": 30,
+      "cluster": 18,
+      "standard": 4,
+      "standard_multi": 6,
+      "standard_parent": 7
+    },
+    "google/gemma-3n-E4B-it": {
+      "grade": 100,
+      "domain": 61,
+      "cluster": 49,
+      "standard": 26,
+      "standard_multi": 37,
+      "standard_parent": 43
+    },
+    "Qwen/Qwen2.5-7B-Instruct-Turbo": {
+      "grade": 100,
+      "domain": 70,
+      "cluster": 57,
+      "standard": 39,
+      "standard_multi": 41,
+      "standard_parent": 48
+    }
+  }
+}

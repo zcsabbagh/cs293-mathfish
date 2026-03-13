@@ -1,0 +1,23 @@
+[
+  {
+    "model": "zcs2024_8faa/Qwen3-1.7B-Base-building-on-1.7-4d1d1510-11787182",
+    "step": 0,
+    "epoch": 1,
+    "standard_precision": 0.0,
+    "standard_recall": 0.0,
+    "standard_f1": 0.0,
+    "standard_exact_match": 0.0,
+    "cluster_precision": 0.0,
+    "cluster_recall": 0.0,
+    "cluster_f1": 0.0,
+    "cluster_exact_match": 0.0,
+    "domain_precision": 0.0,
+    "domain_recall": 0.0,
+    "domain_f1": 0.0,
+    "domain_exact_match": 0.0,
+    "grade_precision": 0.0,
+    "grade_recall": 0.0,
+    "grade_f1": 0.0,
+    "grade_exact_match": 0.0
+  }
+]
