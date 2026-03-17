@@ -1,6 +1,9 @@
 .env
+.env.*
 __pycache__/
 *.pyc
 .DS_Store
 checkpoints/
 mathfish_train.jsonl
+.venv/
+.claude/
